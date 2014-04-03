@@ -41,6 +41,10 @@ public class SPList extends SPObject {
         rows = new LinkedHashMap<Integer, SPListRow>();
         markedRows = new LinkedHashMap<Integer, SPListRow>();
     }
+    
+    public SharePointClient getSharePointClient() {
+        return client;
+    }
 
     public SPListRow getBlankListRow() {
         SPListRow row = new SPListRow();
@@ -143,6 +147,21 @@ public class SPList extends SPObject {
      */
     public SPListRow insertNewRecord(SPListRow row) throws SPException, IOException {
         return client.insertListItem(this, row);
+    }
+    
+    public SPAttachment[] getAttachments(SPListRow row) throws SPException, IOException {
+        client.getAttachments(this, row);
+        Map<String, SPAttachment> attachments = row.getAttachmentsMap();
+        return attachments.values().toArray(new SPAttachment[attachments.size()]);
+    }
+    
+    public void addAttachment(SPListRow row, String fileName, byte[] bytes) throws SPException, IOException {
+        SPAttachment attachment = new SPAttachment(fileName, bytes);
+        addAttachment(row, attachment);
+    }
+    
+    public void addAttachment(SPListRow row, SPAttachment attachment) throws SPException, IOException {
+        client.addAttachment(this, row, attachment);
     }
 
     public void updateRecord(SPListRow row) throws SPException, IOException {
@@ -315,11 +334,14 @@ public class SPList extends SPObject {
         return listRows;
     }
 
-    public SPListRow getRow(int id) throws IOException {
+    public SPListRow getRow(int id) throws IOException, SPException {
         if (!isRefreshedOnce()) {
             refreshData();
         }
-        return this.rows.get(id);
+        SPListRow row = this.rows.get(id);
+        
+        if(row == null) throw new SPException("Row with Id: " + id + " Not Found!");
+        return row;
     }
 
     public void addField(SPField field) {

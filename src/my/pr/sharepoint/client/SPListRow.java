@@ -4,6 +4,7 @@
  */
 package my.pr.sharepoint.client;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -18,10 +19,16 @@ public class SPListRow extends SPObject {
     private Map<String, String> rowColumns = null;
     private SPList list = null;
     private boolean listDerived = false;
+    
+    private boolean hasAttachments = false;
+    private boolean attachmentsLoaded = false;
+    
+    private Map<String, SPAttachment> attachments = null;
     //private Map<String, String> displayNamesToColumns = null;
     
     public SPListRow() {
         rowColumns = new HashMap<String, String>();
+        attachments = new HashMap<String, SPAttachment>();
         //displayNamesToColumns = new HashMap<String, String>();
     }
     
@@ -29,7 +36,35 @@ public class SPListRow extends SPObject {
         this.list = list;
         rowColumns = new HashMap<String, String>();
         listDerived = true;
+        attachments = new HashMap<String, SPAttachment>();
         //displayNamesToColumns = new HashMap<String, String>();
+    }
+    
+    public void addAttachment(SPAttachment attachment) {
+        attachments.put(attachment.getFileName(), attachment);
+    }
+    
+    public SPAttachment getAttachment(String fileName) throws SPException, IOException {
+        //if(!attachmentsLoaded) loadAttachments();
+        return attachments.get(fileName);
+    }
+    
+    public Map<String, SPAttachment> getAttachmentsMap() throws SPException, IOException {
+        //if(!attachmentsLoaded) loadAttachments();
+        return attachments;
+    }
+    
+    public SPList getList() {
+        return list;
+    }
+    
+    public SPAttachment[] loadAttachments() throws SPException, IOException {
+        if(hasAttachments) {
+            SPAttachment[] attachments = list.getAttachments(this);
+            attachmentsLoaded = true;
+            return attachments;
+        }
+        return null;
     }
     
     public SPListRow cloneNewRow() {
@@ -122,5 +157,19 @@ public class SPListRow extends SPObject {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    /**
+     * @return the hasAttachments
+     */
+    public boolean isHasAttachments() {
+        return hasAttachments;
+    }
+
+    /**
+     * @param hasAttachments the hasAttachments to set
+     */
+    public void setHasAttachments(boolean hasAttachments) {
+        this.hasAttachments = hasAttachments;
     }
 }

@@ -53,6 +53,10 @@ public class GetListItemsResponseHandler extends BaseSharePointSoapHandler {
                     row.addRowColumn(name, value);
                 }
                 
+                if(name.equalsIgnoreCase("Attachments")) {
+                    row.setHasAttachments(true);
+                }
+                
             }
             list.addRowToCache(row);
         }

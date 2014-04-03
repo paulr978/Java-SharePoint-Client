@@ -52,6 +52,10 @@ public abstract class BaseSharePointSoapHandler extends DefaultHandler {
             startErrorTextTag = true;
         }
         
+        if(qName.equalsIgnoreCase("errorstring")) {
+            startErrorTextTag = true;
+        }
+        
         startElem(uri, localName, qName, attributes);
     }
 
@@ -69,6 +73,11 @@ public abstract class BaseSharePointSoapHandler extends DefaultHandler {
             if(!errorCode.equalsIgnoreCase("0x00000000")) error = true;
             
             startErrorCodeTag = false;
+        }
+        
+        if(startErrorTextTag) {
+            errorText = new String(ch, start, length);
+            startErrorTextTag = false;
         }
         
         if(startErrorTextTag) {

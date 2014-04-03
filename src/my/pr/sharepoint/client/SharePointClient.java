@@ -13,6 +13,8 @@ import my.pr.sharepoint.xml.handlers.GetWebResponseHandler;
 import java.io.IOException;
 import java.util.List;
 import my.pr.connectivity.*;
+import my.pr.sharepoint.xml.handlers.GetAttachmentCollectionResponseHandler;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 /**
@@ -57,6 +59,12 @@ public class SharePointClient extends PrHttpClient {
     public SPSite getCurrentSite() throws IOException {
         SPSite site = new SPSite(this);
         return getCurrentSite(site);
+    }
+    
+    public byte[] getBytesFromUrl(String url) throws IOException {
+        PrHttpResponse response = this.processGetRequest(url);
+        return response.getContentBytes();
+
     }
 
     public SPSite getCurrentSite(SPSite site) throws IOException {
@@ -243,6 +251,46 @@ public class SharePointClient extends PrHttpClient {
             return getListItemHandler.getRow();
         } else {
             throw new IOException("Error Processing insertListItem()");
+        }
+    }
+    
+    public void addAttachment(SPList list, SPListRow row, SPAttachment attachment) throws IOException {
+        
+        StringBuffer actionXml = new StringBuffer();
+        actionXml.append("<AddAttachment xmlns=\"http://schemas.microsoft.com/sharepoint/soap/\">");
+        actionXml.append("<listName>" + list.getId() + "</listName>");
+        actionXml.append("<listItemID>" + row.getId() + "</listItemID>");
+        actionXml.append("<fileName>" + attachment.getFileName() + "</fileName>");
+        actionXml.append("<attachment>" + attachment.getXmlFriendlyBytes() + "</attachment>");
+        actionXml.append("</AddAttachment>");
+
+        PrHttpResponse response = processSoapRequest(LISTS_URL, actionXml.toString());
+        if (response.getStatusCode() == 200) {
+
+            GetListItemsResponseHandler getListItemsHandler = new GetListItemsResponseHandler(list);
+            PrXMLUtils.parseString(response.getStringContent(), getListItemsHandler);
+
+        } else {
+            throw new IOException("Error Processing addAttachment()");
+        }
+    }
+    
+    public void getAttachments(SPList list, SPListRow row) throws IOException {
+        
+        StringBuffer actionXml = new StringBuffer();
+        actionXml.append("<GetAttachmentCollection xmlns=\"http://schemas.microsoft.com/sharepoint/soap/\">");
+        actionXml.append("<listName>" + list.getId() + "</listName>");
+        actionXml.append("<listItemID>" + row.getId() + "</listItemID>");
+        actionXml.append("</GetAttachmentCollection>");
+
+        PrHttpResponse response = processSoapRequest(LISTS_URL, actionXml.toString());
+        if (response.getStatusCode() == 200) {
+
+            GetAttachmentCollectionResponseHandler getAttachmentsHandler = new GetAttachmentCollectionResponseHandler(list, row);
+            PrXMLUtils.parseString(response.getStringContent(), getAttachmentsHandler);
+
+        } else {
+            throw new IOException("Error Processing getAttachments()");
         }
     }
 
