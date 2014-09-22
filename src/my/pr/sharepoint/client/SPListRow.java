@@ -67,6 +67,11 @@ public class SPListRow extends SPObject {
         return null;
     }
     
+    /**
+     * May be used to update specific columns for a row
+     * 
+     * @return 
+     */
     public SPListRow cloneNewRow() {
         SPListRow row = null;
         if(list != null) {
@@ -149,7 +154,15 @@ public class SPListRow extends SPObject {
         
         if(!rowColumns.containsKey(identifier)) throw new SPException("Column Name " + identifier + " does not Exist!");
         return SPListUtils.stripCascadedLookupId(rowColumns.get(identifier));
-    }    
+    }
+    
+    public String toString() {
+        StringBuffer s = new StringBuffer();
+        for(String column : rowColumns.keySet()) {
+            s.append(column + ": " + rowColumns.get(column) + "\t");
+        }
+        return s.toString();
+    }
 
     public int getId() {
         return id;

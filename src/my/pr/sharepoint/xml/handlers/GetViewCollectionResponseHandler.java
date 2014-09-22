@@ -5,14 +5,12 @@
 package my.pr.sharepoint.xml.handlers;
 
 //import com.kronos.kgs.analysis.iis.*;
-import my.pr.sharepoint.client.SPField;
 import my.pr.sharepoint.client.SPList;
-import my.pr.sharepoint.client.SPListRow;
 import my.pr.sharepoint.client.SharePointClient;
 import my.pr.sharepoint.client.SPSite;
 import java.util.ArrayList;
 import java.util.List;
-import my.pr.utils.OBoolean;
+import my.pr.sharepoint.client.SPView;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -21,14 +19,15 @@ import org.xml.sax.helpers.DefaultHandler;
  *
  * @author PRando
  */
-public class GetListItemsResponseHandler extends BaseSharePointSoapHandler {
+public class GetViewCollectionResponseHandler extends BaseSharePointSoapHandler {
 
-    private SPList list = null;
+    private SPSite parentSite = null;
+    private ArrayList<SPView> views = null;
 
-    public GetListItemsResponseHandler(SPList list) {
-        this.list = list;
+    public GetViewCollectionResponseHandler(SPSite parentSite) {
+        this.parentSite = parentSite;
+        views = new ArrayList<SPView>();
     }
-
     
     public void startDoc() throws SAXException {
         //System.out.println("start document   : ");
@@ -41,27 +40,18 @@ public class GetListItemsResponseHandler extends BaseSharePointSoapHandler {
     public void startElem(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         //System.out.println("start element    : " + qName);
         
-        if(qName.equalsIgnoreCase("z:row")) {
-            SPListRow row = list.getNewListRow();
-            for(int i = 0; i < attributes.getLength(); i++) {
-                String name = attributes.getLocalName(i).replace("ows_", "");
-                String value = attributes.getValue(i).replaceAll("[\\u00A0]", " ").trim();
-                
-                if(name.equalsIgnoreCase("ID")) {
-                    row.setId(Integer.parseInt(value));
-                }
-                else {
-                    row.addRowColumn(name, value);
-                }
-                
-                if(name.equalsIgnoreCase("Attachments")) {
-                    row.setHasAttachments(OBoolean.parseString(value));
-                }
-                
-            }
-            list.addRowToCache(row);
+        if(qName.equalsIgnoreCase("View")) {
+            SPView view = new SPView();
+            String displayName = attributes.getValue("DisplayName");
+            String name = attributes.getValue("Name");
+            String url = attributes.getValue("Url");
+            
+            view.setName(name);
+            view.setDisplayName(displayName);
+            
+            views.add(view);
+            //parentSite.getListService().addList(id, name, title, description, Integer.valueOf(itemCount));
         }
-        
 
         
     }
@@ -74,8 +64,8 @@ public class GetListItemsResponseHandler extends BaseSharePointSoapHandler {
         //System.out.println("start characters : " + new String(ch, start, length));
     }
     
-    public SPList getList() {
-        return list;
+    public SPView[] getViews() {
+        return views.toArray(new SPView[views.size()]);
     }
-
+ 
 }

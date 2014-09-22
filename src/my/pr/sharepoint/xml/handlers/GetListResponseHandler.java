@@ -11,6 +11,7 @@ import my.pr.sharepoint.client.SharePointClient;
 import my.pr.sharepoint.client.SPSite;
 import java.util.ArrayList;
 import java.util.List;
+import my.pr.sharepoint.client.SPView;
 import my.pr.utils.OBoolean;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -24,9 +25,18 @@ public class GetListResponseHandler extends BaseSharePointSoapHandler {
 
     private SPSite parentSite = null;
     private SPList list = null;
+    private SPView view = null;
+    private boolean isView = false;
     
     public GetListResponseHandler(SPSite parentSite) {
+        this(parentSite, null);
+    }
+    
+    public GetListResponseHandler(SPSite parentSite, SPView view) {
         this.parentSite = parentSite;
+        this.view = view;
+        
+        if(this.view != null) isView = true;
     }
     
     public void startDoc() throws SAXException {
@@ -41,7 +51,9 @@ public class GetListResponseHandler extends BaseSharePointSoapHandler {
         //System.out.println("start element    : " + qName);
         
         if(qName.equalsIgnoreCase("List")) {
-            list = new SPList(parentSite);
+            if(isView) list = new SPList(parentSite, view);
+            else list = new SPList(parentSite);
+            
             String name = attributes.getValue("Name");
             String title = attributes.getValue("Title");
             String description = attributes.getValue("Description");

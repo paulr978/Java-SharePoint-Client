@@ -12,6 +12,7 @@ import my.pr.sharepoint.client.SharePointClient;
 import my.pr.sharepoint.client.SPSite;
 import java.util.ArrayList;
 import java.util.List;
+import my.pr.utils.OBoolean;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -56,7 +57,7 @@ public class GetListItemResponseHandler extends BaseSharePointSoapHandler {
                 }
                 
                 if(name.equalsIgnoreCase("Attachments")) {
-                    row.setHasAttachments(true);
+                    row.setHasAttachments(OBoolean.parseString(value));
                 }
                 
             }

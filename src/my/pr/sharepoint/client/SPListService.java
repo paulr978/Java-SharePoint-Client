@@ -34,6 +34,23 @@ public class SPListService {
         
         return client.getList(titleOrId, parentSite);
     }
+    
+    public SPList getList(String titleOrId, String viewName) throws IOException, SPException {
+        String identifier = titleOrId;
+        if(titlesToIds.containsKey(identifier)) identifier = titlesToIds.get(titleOrId);
+        if(!doesListIdentifierExist(identifier)) {throw new SPException("List " + titleOrId + " / " + identifier + " does not Exist!");}
+        
+        
+        SPView[] views = client.getViewCollection(identifier, parentSite);
+        for(SPView view : views) {
+            if(view.getDisplayName().equalsIgnoreCase(viewName)) {
+                return client.getList(titleOrId, view, parentSite);
+            }
+        }
+         
+        
+        return client.getList(titleOrId, parentSite);
+    }
         
     public void addList(String id, String name, String title, String description, int itemCount) {
         lists.put(id, new SimpleList(id, name, title, description, itemCount));
@@ -55,6 +72,7 @@ public class SPListService {
         }
         return false;
     }
+    
     
     public class SimpleList {
         

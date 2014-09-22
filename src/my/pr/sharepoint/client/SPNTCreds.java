@@ -19,6 +19,10 @@ public class SPNTCreds {
     
     }
     
+   public SPNTCreds(String user, String password) {
+        this(user, password, null, null);
+    }
+    
     public SPNTCreds(String user, String password, String domain) {
         this(user, password, domain, domain);
     }

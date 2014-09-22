@@ -23,27 +23,41 @@ public class SPList extends SPObject {
     private SPSite parentSite = null;
     private String id = null;
     private String name = null;
+    private SPView view = null;
     private String title = null;
     private String description = null;
     private String url = null;
+    private String folder = null;
     private int itemCount = -1;
     private ArrayList<SPField> fields = null;
     private LinkedHashMap<Integer, SPListRow> rows = null;
     private LinkedHashMap<Integer, SPListRow> markedRows = null;
     private boolean refreshedOnce = false;
+    private boolean isView = false;
 
     public SPList(SPSite parentSite) {
+        this(parentSite, null);
+    }
+    
+    public SPList(SPSite parentSite, SPView view) {
         this.client = parentSite.getClient();
         this.parentSite = parentSite;
         this.client = parentSite.getClient();
+        this.view = view;
 
         fields = new ArrayList<SPField>();
         rows = new LinkedHashMap<Integer, SPListRow>();
         markedRows = new LinkedHashMap<Integer, SPListRow>();
+        
+        if(this.view != null) isView = true;
     }
     
     public SharePointClient getSharePointClient() {
         return client;
+    }
+    
+    public void setFolder(String folder) {
+        this.folder = folder;
     }
 
     public SPListRow getBlankListRow() {
@@ -117,12 +131,14 @@ public class SPList extends SPObject {
     }
 
     public void refreshData() throws IOException {
-        client.getListItems(this, 999999999);
+        if(isView) client.getListItems(this, view, 999999999, folder);
+        else client.getListItems(this, 999999999, folder);
         refreshedOnce = true;
     }
 
     public void refreshData(int rowLimit) throws IOException {
-        client.getListItems(this, rowLimit);
+        if(isView) client.getListItems(this, view, rowLimit, folder);
+        else client.getListItems(this, rowLimit, folder);
         refreshedOnce = true;
     }
 
@@ -149,6 +165,10 @@ public class SPList extends SPObject {
         return client.insertListItem(this, row);
     }
     
+    public SPListRow insertNewRecord(SPListRow row, ArrayList<String> cs) throws SPException, IOException {
+        return client.insertListItem(this, row, cs);
+    }
+    
     public SPAttachment[] getAttachments(SPListRow row) throws SPException, IOException {
         client.getAttachments(this, row);
         Map<String, SPAttachment> attachments = row.getAttachmentsMap();
@@ -163,11 +183,32 @@ public class SPList extends SPObject {
     public void addAttachment(SPListRow row, SPAttachment attachment) throws SPException, IOException {
         client.addAttachment(this, row, attachment);
     }
+    
+    public void deleteAttachment(SPListRow row, SPAttachment attachment) throws SPException, IOException {
+        client.deleteAttachment(this, row, attachment);
+    }
 
     public void updateRecord(SPListRow row) throws SPException, IOException {
         client.updateListItem(this, row);
     }
 
+    public void deleteAllRecords() throws IOException {
+        if (!isRefreshedOnce()) {
+            refreshData();
+        }
+        
+        List<SPListRow> list = new ArrayList<SPListRow>();
+        for(SPListRow row : rows.values()) {
+            deleteRecord(row);
+            list.add(row);
+        }
+        
+        for(SPListRow row : list) {
+            rows.remove(row.getId());
+        }
+        
+    }
+    
     public void deleteRecord(SPListRow row) throws IOException {
         if (row.getId() == -1) {
             throw new IOException("Row Id Missing!");
@@ -223,9 +264,12 @@ public class SPList extends SPObject {
             refreshData();
         }
         for (SPListRow row : rows.values()) {
-            if (row.getRowColumn(column).toUpperCase().contains(value.toUpperCase())) {
-                return row;
+            if(row.containsColumnName(column)) {
+                if (row.getRowColumn(column).toUpperCase().contains(value.toUpperCase())) {
+                    return row;
+                }
             }
+            
         }
         return null;
     }
@@ -241,12 +285,8 @@ public class SPList extends SPObject {
             while (keys.hasNext()) {
                 String column = keys.next();
                 String value = columnValues.get(column);
-                //System.out.println("Looking for value: " + value + " in Column: " + column);
-
                 if (row.containsColumnName(column)) {
-                    //System.out.println("Source:_" + row.getRowColumn(column) + "_Comparison:_" + value);
-                    if (row.getRowColumn(column).toUpperCase().contains(value.toUpperCase())) {
-                        //return row;
+                    if (row.getRowColumn(column).trim().toUpperCase().contains(value.trim().toUpperCase())) {
                         meetsCriteria = true;
                     } else {
                         meetsCriteria = false;
@@ -257,7 +297,6 @@ public class SPList extends SPObject {
                     meetsCriteria = false;
                     continue loop;
                 }
-
             }
 
             if (meetsCriteria) {
@@ -266,6 +305,74 @@ public class SPList extends SPObject {
 
         }
         return null;
+    }
+    
+    public ArrayList<SPListRow> getRowsEqualingColumnValues(Map<String, String> columnValues) throws SPException, IOException {
+        ArrayList<SPListRow> cRows = new ArrayList<SPListRow>();
+        if (!isRefreshedOnce()) {
+            refreshData();
+        }
+        loop:
+        for (SPListRow row : rows.values()) {
+            boolean meetsCriteria = false;
+            Iterator<String> keys = columnValues.keySet().iterator();
+            while (keys.hasNext()) {
+                String column = keys.next();
+                String value = columnValues.get(column);
+                if (row.containsColumnName(column)) {
+                    if (row.getRowColumn(column).trim().equalsIgnoreCase(value.trim())) {
+                        meetsCriteria = true;
+                    } else {
+                        meetsCriteria = false;
+                        continue loop;
+                    }
+                }
+                else {
+                    meetsCriteria = false;
+                    continue loop;
+                }
+            }
+
+            if (meetsCriteria) {
+                cRows.add(row);
+            }
+
+        }
+        return cRows;
+    }
+    
+    public ArrayList<SPListRow> getRowsContainingColumnValues(Map<String, String> columnValues) throws SPException, IOException {
+        ArrayList<SPListRow> cRows = new ArrayList<SPListRow>();
+        if (!isRefreshedOnce()) {
+            refreshData();
+        }
+        loop:
+        for (SPListRow row : rows.values()) {
+            boolean meetsCriteria = false;
+            Iterator<String> keys = columnValues.keySet().iterator();
+            while (keys.hasNext()) {
+                String column = keys.next();
+                String value = columnValues.get(column);
+                if (row.containsColumnName(column)) {
+                    if (row.getRowColumn(column).toUpperCase().contains(value.toUpperCase())) {
+                        meetsCriteria = true;
+                    } else {
+                        meetsCriteria = false;
+                        continue loop;
+                    }
+                }
+                else {
+                    meetsCriteria = false;
+                    continue loop;
+                }
+            }
+
+            if (meetsCriteria) {
+                cRows.add(row);
+            }
+
+        }
+        return cRows;
     }
 
     public SPListRow[] getDuplicateRows(String column, boolean showAll) throws SPException, IOException {
@@ -298,9 +405,12 @@ public class SPList extends SPObject {
             refreshData();
         }
         for (SPListRow row : rows.values()) {
-            if (row.getRowColumn(column).toUpperCase().contains(value.toUpperCase())) {
-                list.add(row);
+            if(row.containsColumnName(column)) {
+                if (row.getRowColumn(column).toUpperCase().contains(value.toUpperCase())) {
+                    list.add(row);
+                }
             }
+            
         }
         return list.toArray(new SPListRow[list.size()]);
     }
@@ -335,6 +445,7 @@ public class SPList extends SPObject {
     }
 
     public SPListRow getRow(int id) throws IOException, SPException {
+        /*
         if (!isRefreshedOnce()) {
             refreshData();
         }
@@ -342,6 +453,12 @@ public class SPList extends SPObject {
         
         if(row == null) throw new SPException("Row with Id: " + id + " Not Found!");
         return row;
+        */
+        
+        if(isView) client.getListItemById(this, view, id, 999999999);
+        else client.getListItemById(this, null, id, 999999999);
+        
+        return this.rows.get(id);
     }
 
     public void addField(SPField field) {

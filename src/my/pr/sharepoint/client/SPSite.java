@@ -23,26 +23,45 @@ public class SPSite extends SPObject {
     private SPNTCreds ntCreds = null;
     private Map<String, SimpleSite> subSites = null;
     private SPListService listService = null;
+    private SPUserService userService = null;
     private SPSite parentSite = null;
     private String title = null;
     private String url = null;
+    private String origUrl = null;
     private String description = null;
     private String language = null;
     private String theme = null;
 
     public SPSite(String url, String user, String password, String userDomain, String hostDomain) throws IOException {
-        this(url, new SPNTCreds(user, password, userDomain, hostDomain));
+        this(url, new SPNTCreds(user, password, userDomain, hostDomain), false);
+    }
+    
+    public SPSite(String url, String user, String password, String userDomain, String hostDomain, boolean debug) throws IOException {
+        this(url, new SPNTCreds(user, password, userDomain, hostDomain), debug);
+    }
+    
+    
+    
+    public SPSite(String url, SPNTCreds creds) throws IOException {
+        this(url, creds, false);
     }
 
-    public SPSite(String url, SPNTCreds creds) throws IOException {
+    public SPSite(String url, SPNTCreds creds, boolean debug) throws IOException {
+        this(url, creds, debug, 0, 0);
+    }
+    
+    public SPSite(String url, SPNTCreds creds, boolean debug, int commRetryCount, long commRetrySleepInterval) throws IOException {
         //Fix URL Spaces
+        origUrl = url;
         url = url.replace(" ", "%20");
         
-        this.client = new SharePointClient(url, creds);
+        this.client = new SharePointClient(url, creds, debug, commRetryCount, commRetrySleepInterval);
+        this.client.setOrigUrl(origUrl);
         this.ntCreds = creds;
 
         subSites = new HashMap<String, SimpleSite>();
         listService = new SPListService(this);
+        userService = new SPUserService(this);
 
         client.getCurrentSite(this);
         loadSubSites();
@@ -63,6 +82,10 @@ public class SPSite extends SPObject {
 
     public SPListService getListService() {
         return listService;
+    }
+    
+    public SPUserService getUserService() {
+        return userService;
     }
 
     private void loadSubSites() throws IOException {
