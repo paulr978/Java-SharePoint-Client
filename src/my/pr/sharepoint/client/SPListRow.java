@@ -70,7 +70,7 @@ public class SPListRow extends SPObject {
             attachmentsLoaded = true;
             return attachments;
         }
-        return null;
+        return new SPAttachment[0];
     }
     
     /**
