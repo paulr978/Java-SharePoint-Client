@@ -42,6 +42,10 @@ public class SPListRow extends SPObject {
         //displayNamesToColumns = new HashMap<String, String>();
     }
     
+    public void uploadAttachment(SPAttachment attachment) throws SPException, IOException {
+        list.addAttachment(this, attachment);
+    }
+    
     public void addAttachment(SPAttachment attachment) {
         attachments.put(attachment.getFileName(), attachment);
     }
